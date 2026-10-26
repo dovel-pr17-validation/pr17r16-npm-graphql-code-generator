@@ -1,0 +1,45 @@
+{
+  "name": "example-vite-react-cts",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc && vite build",
+    "codegen": "graphql-codegen --config codegen.cts",
+    "dev": "vite",
+    "start": "vite preview --port 3000",
+    "test": "cypress run",
+    "test:end2end": "start-server-and-test start http://localhost:3000 test"
+  },
+  "dependencies": {
+    "@apollo/client": "3.14.1",
+    "@graphql-typed-document-node/core": "3.2.0",
+    "@vitejs/plugin-react-swc": "4.3.1",
+    "graphql": "17.0.2",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "vite": "8.1.6"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "workspace:*",
+    "@graphql-codegen/client-preset": "workspace:*",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "cypress": "15.15.0",
+    "start-server-and-test": "3.0.5",
+    "typescript": "6.0.3"
+  },
+  "bob": false,
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

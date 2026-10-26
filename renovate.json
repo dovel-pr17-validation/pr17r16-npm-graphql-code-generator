@@ -1,0 +1,31 @@
+{
+  "enabled": false,
+  "extends": ["github>the-guild-org/shared-config:renovate"],
+  "automerge": true,
+  "major": {
+    "automerge": false
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "excludePackageNames": [
+        "@changesets/*",
+        "typescript",
+        "/^@theguild\\//",
+        "next",
+        "tailwindcss",
+        "@whatwg-node/*",
+        "graphql-jit",
+        "husky",
+        "@types/lz-string",
+        "swc*"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch"
+    }
+  ]
+}

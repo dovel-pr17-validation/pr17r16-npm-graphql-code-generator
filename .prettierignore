@@ -1,0 +1,33 @@
+packages/graphql-codegen-cli/tests/test-documents/invalid-schema.graphql
+packages/presets/gql-tag-operations/tests/fixtures/crlf-operation.ts
+dist/
+build/
+.next/
+.bob
+CHANGELOG.md
+.husky/_/
+.changeset/*.md
+pnpm-lock.yaml
+
+# temporarily ignore follow files because prettier-ignore comments don't work in mdx2
+# see https://github.com/prettier/prettier/pull/12208
+website/content/docs/advanced/generated-files-colocation.mdx
+website/content/docs/advanced/how-does-it-work.mdx
+website/content/docs/config-reference/schema-field.mdx
+website/content/docs/getting-started/index.mdx
+website/content/docs/guides/graphql-server-apollo-yoga.mdx
+website/content/plugins/presets/near-operation-file-preset.mdx
+
+temp/
+
+# added because it blocks CI and when I try to format it locally nothing happens :)
+
+# Ignore intentional error files
+packages/graphql-codegen-cli/tests/test-files/schema-dir/error-schema.graphql
+packages/graphql-codegen-cli/tests/test-files/error-document.graphql
+
+# Ignore dev-tests with no prettier requirement
+dev-test/general/githunt-invalid/invalid.graphql
+dev-test/general/test-schema/flow-types.flow.js
+dev-test/graphql-config/**/__generated__/
+dev-test/apollo-tooling/src/__generated__/

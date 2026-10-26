@@ -1,0 +1,211 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TypeScript Operations Plugin > Issues > #2699 - Issues with multiple interfaces and unions 1`] = `
+"export type GetEntityBrandDataQueryVariables = Exact<{
+  gid: string | number;
+  brand: string | number;
+}>;
+
+
+export type GetEntityBrandDataQuery = { node:
+    | { __typename: 'Company', active: boolean, id: string, createdAt: unknown, updatedAt: unknown, brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null }
+    | { __typename: 'Theater', active: boolean, id: string, createdAt: unknown, updatedAt: unknown, brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null }
+    | { __typename: 'Movie', id: string, createdAt: unknown, updatedAt: unknown, brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null }
+    | { __typename: 'User', id: string, createdAt: unknown, updatedAt: unknown, brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null }
+   };
+
+type EntityBrandData_Company_Fragment = { brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null };
+
+type EntityBrandData_Theater_Fragment = { brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null };
+
+type EntityBrandData_Movie_Fragment = { brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null };
+
+type EntityBrandData_User_Fragment = { brandData: { active: boolean, browsable: boolean, title: string, alternateTitle: string | null, description: string } | null };
+
+export type EntityBrandDataFragment =
+  | EntityBrandData_Company_Fragment
+  | EntityBrandData_Theater_Fragment
+  | EntityBrandData_Movie_Fragment
+  | EntityBrandData_User_Fragment
+;
+
+type ElementMetadata_Company_Fragment = { createdAt: unknown, updatedAt: unknown, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null };
+
+type ElementMetadata_Theater_Fragment = { createdAt: unknown, updatedAt: unknown, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null };
+
+type ElementMetadata_Movie_Fragment = { createdAt: unknown, updatedAt: unknown, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null };
+
+type ElementMetadata_User_Fragment = { createdAt: unknown, updatedAt: unknown, createdBy: { id: string, name: string } | null, updatedBy: { id: string, name: string } | null };
+
+export type ElementMetadataFragment =
+  | ElementMetadata_Company_Fragment
+  | ElementMetadata_Theater_Fragment
+  | ElementMetadata_Movie_Fragment
+  | ElementMetadata_User_Fragment
+;
+"
+`;
+
+exports[`TypeScript Operations Plugin > Issues > #2916 - Missing import prefix with near-operation-file preset 1`] = `
+"export type Department =
+  | 'Direction'
+  | 'Development';
+
+export type UserQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserQuery = { user: { id: string, username: string, email: string, dep: Types.Department } };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Issues > #3064 - fragments over interfaces causes issues with fields 1`] = `
+"type Venue_Hotel_Fragment = { id: string, gpsPosition: { lat: number, lng: number } };
+
+type Venue_Transport_Fragment = { id: string };
+
+export type VenueFragment =
+  | Venue_Hotel_Fragment
+  | Venue_Transport_Fragment
+;
+
+export type QQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type QQuery = { hotel: { id: string, gpsPosition: { lat: number, lng: number } }, transport: { id: string } };
+function test(q: QQuery) {
+        if (q.hotel) {
+            const t1 = q.hotel.gpsPosition.lat
+        }
+
+        if (q.transport) {
+            const t2 = q.transport.id;
+        }
+    }"
+`;
+
+exports[`TypeScript Operations Plugin > Issues > #6874 - generates types when parent type differs from spread fragment member types 1`] = `
+"export type SnakeQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type SnakeQueryQuery = { snake:
+    | { name: string, features: { color: string, length: number } }
+    | Record<PropertyKey, never>
+   };
+
+type AnimalFragment_Bat_Fragment = { features: { color: string, wingspan: number } };
+
+type AnimalFragment_Snake_Fragment = { features: { color: string, length: number } };
+
+export type AnimalFragmentFragment =
+  | AnimalFragment_Bat_Fragment
+  | AnimalFragment_Snake_Fragment
+;
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should generate the correct __typename when using both inline fragment and spread over type 1`] = `
+"export type UserQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserQueryQuery = { user: { id: string, name: string | null } | null };
+
+export type UserFragment = { id: string, name: string | null };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should generate the correct __typename when using fragment over type 1`] = `
+"export type UserQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserQueryQuery = { user: { id: string, name: string | null } | null };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should generate the correct __typename when using fragment spread over type 1`] = `
+"export type UserQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserQueryQuery = { user: { id: string, name: string | null } | null };
+
+export type UserFragment = { id: string, name: string | null };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should generate the correct __typename when using fragment spread over union 1`] = `
+"export type UserFragmentFragment = { id: string };
+
+export type AaaQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AaaQuery = { user:
+    | { id: string }
+    | Record<PropertyKey, never>
+   };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should have valid __typename usage and split types according to that (with usage) 1`] = `
+"type NetRoute_Ipv4Route_Fragment = { __typename: 'IPV4Route', ipv4Address: unknown, ipv4Gateway: unknown };
+
+type NetRoute_Ipv6Route_Fragment = { __typename: 'IPV6Route', ipv6Address: unknown, ipv6Gateway: unknown };
+
+export type NetRouteFragment =
+  | NetRoute_Ipv4Route_Fragment
+  | NetRoute_Ipv6Route_Fragment
+;
+
+export type QqQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type QqQuery = { routes: Array<
+    | { __typename: 'IPV4Route', ipv4Address: unknown, ipv4Gateway: unknown }
+    | { __typename: 'IPV6Route', ipv6Address: unknown, ipv6Gateway: unknown }
+  > };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should have valid __typename usage and split types according to that (with usage) 2`] = `
+"type NetRoute_Ipv4Route_Fragment = { __typename: 'IPV4Route', ipv4Address: unknown, ipv4Gateway: unknown };
+
+type NetRoute_Ipv6Route_Fragment = { __typename: 'IPV6Route', ipv6Address: unknown, ipv6Gateway: unknown };
+
+export type NetRouteFragment =
+  | NetRoute_Ipv4Route_Fragment
+  | NetRoute_Ipv6Route_Fragment
+;
+
+export type TestFragment = { ipv6Address: unknown, ipv6Gateway: unknown };
+
+export type QqQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type QqQuery = { routes: Array<
+    | { __typename: 'IPV4Route', ipv4Address: unknown, ipv4Gateway: unknown }
+    | { __typename: 'IPV6Route', ipv6Address: unknown, ipv6Gateway: unknown }
+  > };
+"
+`;
+
+exports[`TypeScript Operations Plugin > Selection Set > Should have valid fragments intersection on different types (with usage) #2498 1`] = `
+"export type TomFragment = { id: string, foo: string };
+
+export type JerryFragment = { id: string, bar: string };
+
+type User_Tom_Fragment = { id: string, foo: string };
+
+type User_Jerry_Fragment = { id: string, bar: string };
+
+export type UserFragment =
+  | User_Tom_Fragment
+  | User_Jerry_Fragment
+;
+
+export type UserQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type UserQueryQuery = { user:
+    | { id: string, foo: string }
+    | { id: string, bar: string }
+   | null };
+"
+`;

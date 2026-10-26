@@ -1,0 +1,24 @@
+{
+  "name": "example-persisted-documents",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "test": "vitest --no-watch",
+    "test:end2end": "pnpm test"
+  },
+  "dependencies": {
+    "@graphql-yoga/plugin-persisted-operations": "3.21.0",
+    "graphql-yoga": "5.21.0"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.6",
+    "@babel/preset-env": "7.29.5",
+    "@babel/preset-typescript": "7.28.5",
+    "@graphql-codegen/cli": "workspace:*",
+    "@graphql-codegen/client-preset": "workspace:*",
+    "@graphql-typed-document-node/core": "3.2.0"
+  },
+  "bob": false
+}

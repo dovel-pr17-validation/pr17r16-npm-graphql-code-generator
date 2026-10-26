@@ -1,0 +1,21 @@
+{
+  "name": "example-typescript-esm",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "codegen": "graphql-codegen-esm --config codegen.cjs",
+    "start": "node dist/main.js",
+    "test:end2end": "pnpm start"
+  },
+  "dependencies": {
+    "@graphql-typed-document-node/core": "3.2.0",
+    "graphql": "17.0.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "workspace:*",
+    "@graphql-codegen/client-preset": "workspace:*"
+  },
+  "bob": false
+}

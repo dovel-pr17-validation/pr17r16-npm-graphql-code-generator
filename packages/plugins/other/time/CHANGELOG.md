@@ -1,0 +1,280 @@
+# @graphql-codegen/time
+
+## 7.1.1
+
+### Patch Changes
+
+- [#11015](https://github.com/dotansimha/graphql-code-generator/pull/11015)
+  [`7088be0`](https://github.com/dotansimha/graphql-code-generator/commit/7088be0dcb2082d4c21994a8a6a489559784c4ef)
+  Thanks [@dependabot](https://github.com/apps/dependabot)! - dependencies updates:
+  - Updated dependency [`moment@~2.31.0` ↗︎](https://www.npmjs.com/package/moment/v/2.31.0) (from
+    `~2.30.0`, in `dependencies`)
+- Updated dependencies
+  [[`43d0f65`](https://github.com/dotansimha/graphql-code-generator/commit/43d0f65c5a0f19a9743aef875e7a2ef3fe8c6e35),
+  [`82ebbb5`](https://github.com/dotansimha/graphql-code-generator/commit/82ebbb548b67eb8445cbc4ab71b782e65b29a973),
+  [`eae0e62`](https://github.com/dotansimha/graphql-code-generator/commit/eae0e6263d658333069784969b6e13bbabccee52),
+  [`1f7566f`](https://github.com/dotansimha/graphql-code-generator/commit/1f7566f0bead301b21d4f7da49a4bc6924d07ef3)]:
+  - @graphql-codegen/plugin-helpers@7.4.1
+
+## 7.1.0
+
+### Minor Changes
+
+- [#10866](https://github.com/dotansimha/graphql-code-generator/pull/10866)
+  [`959915f`](https://github.com/dotansimha/graphql-code-generator/commit/959915ffa3d01411a0e8b02a15529fafdd47f6b2)
+  Thanks [@eddeee888](https://github.com/eddeee888)! - dependencies updates:
+  - Updated dependency
+    [`graphql@^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0` ↗︎](https://www.npmjs.com/package/graphql/v/0.8.0)
+    (from
+    `^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0`,
+    in `peerDependencies`)
+
+### Patch Changes
+
+- Updated dependencies
+  [[`959915f`](https://github.com/dotansimha/graphql-code-generator/commit/959915ffa3d01411a0e8b02a15529fafdd47f6b2)]:
+  - @graphql-codegen/plugin-helpers@7.1.0
+
+## 7.0.1
+
+### Patch Changes
+
+- [#10849](https://github.com/dotansimha/graphql-code-generator/pull/10849)
+  [`55a4742`](https://github.com/dotansimha/graphql-code-generator/commit/55a47421273ac795c516a011c257c5af159880cb)
+  Thanks [@eddeee888](https://github.com/eddeee888)! - dependencies updates:
+  - Updated dependency
+    [`@graphql-codegen/plugin-helpers@workspace:^` ↗︎](https://www.npmjs.com/package/@graphql-codegen/plugin-helpers/v/workspace:^)
+    (from `^7.0.0`, in `dependencies`)
+
+## 7.0.0
+
+### Major Changes
+
+- [#10496](https://github.com/dotansimha/graphql-code-generator/pull/10496)
+  [`afaace6`](https://github.com/dotansimha/graphql-code-generator/commit/afaace6bb1467793ea8fcda01a6a793e844e0c29)
+  Thanks [@eddeee888](https://github.com/eddeee888)! - BREAKING CHANGE: Drop Node 20 support
+
+### Patch Changes
+
+- Updated dependencies
+  [[`afaace6`](https://github.com/dotansimha/graphql-code-generator/commit/afaace6bb1467793ea8fcda01a6a793e844e0c29),
+  [`afaace6`](https://github.com/dotansimha/graphql-code-generator/commit/afaace6bb1467793ea8fcda01a6a793e844e0c29),
+  [`afaace6`](https://github.com/dotansimha/graphql-code-generator/commit/afaace6bb1467793ea8fcda01a6a793e844e0c29),
+  [`afaace6`](https://github.com/dotansimha/graphql-code-generator/commit/afaace6bb1467793ea8fcda01a6a793e844e0c29)]:
+  - @graphql-codegen/plugin-helpers@7.0.0
+
+## 6.0.0
+
+### Major Changes
+
+- [#10218](https://github.com/dotansimha/graphql-code-generator/pull/10218)
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2)
+  Thanks [@eddeee888](https://github.com/eddeee888)! - Drop Node 18 support
+
+### Patch Changes
+
+- Updated dependencies
+  [[`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2),
+  [`140298a`](https://github.com/dotansimha/graphql-code-generator/commit/140298a33b257a0b7958e361971b5bc97bbc01c2)]:
+  - @graphql-codegen/plugin-helpers@6.0.0
+
+## 5.0.1
+
+### Patch Changes
+
+- [#9881](https://github.com/dotansimha/graphql-code-generator/pull/9881)
+  [`68ea5d4`](https://github.com/dotansimha/graphql-code-generator/commit/68ea5d4d18969840c34e42bf4f8237e849af7aab)
+  Thanks [@renovate](https://github.com/apps/renovate)! - dependencies updates:
+  - Updated dependency [`moment@~2.30.0` ↗︎](https://www.npmjs.com/package/moment/v/2.30.0) (from
+    `~2.29.1`, in `dependencies`)
+
+## 5.0.0
+
+### Major Changes
+
+- [`bb66c2a31`](https://github.com/dotansimha/graphql-code-generator/commit/bb66c2a31985c1375912ccd6b2b02933f313c9c0)
+  Thanks [@n1ru4l](https://github.com/n1ru4l)! - Require Node.js `>= 16`. Drop support for Node.js
+  14
+
+### Patch Changes
+
+- Updated dependencies
+  [[`4d9ea1a5a`](https://github.com/dotansimha/graphql-code-generator/commit/4d9ea1a5a94cd3458c1bd868ce1ab1cb806257f2),
+  [`f46803a8c`](https://github.com/dotansimha/graphql-code-generator/commit/f46803a8c70840280529a52acbb111c865712af2),
+  [`63827fabe`](https://github.com/dotansimha/graphql-code-generator/commit/63827fabede76b2380d40392aba2a3ccb099f0c4),
+  [`bb66c2a31`](https://github.com/dotansimha/graphql-code-generator/commit/bb66c2a31985c1375912ccd6b2b02933f313c9c0)]:
+  - @graphql-codegen/plugin-helpers@5.0.0
+
+## 4.0.0
+
+### Major Changes
+
+- [#8885](https://github.com/dotansimha/graphql-code-generator/pull/8885)
+  [`fd0b0c813`](https://github.com/dotansimha/graphql-code-generator/commit/fd0b0c813015cae4f6f6bda5f4c5515e544eb76d)
+  Thanks [@n1ru4l](https://github.com/n1ru4l)! - drop Node.js 12 support
+
+### Patch Changes
+
+- Updated dependencies
+  [[`fc79b65d4`](https://github.com/dotansimha/graphql-code-generator/commit/fc79b65d4914fd25ae6bd5d58ebc7ded573a08a5),
+  [`fd0b0c813`](https://github.com/dotansimha/graphql-code-generator/commit/fd0b0c813015cae4f6f6bda5f4c5515e544eb76d)]:
+  - @graphql-codegen/plugin-helpers@4.0.0
+
+## 3.2.3
+
+### Patch Changes
+
+- [`46f75304a`](https://github.com/dotansimha/graphql-code-generator/commit/46f75304a69a13e8b5f58303f65c81b30a2ad96a)
+  Thanks [@saihaj](https://github.com/saihaj)! - fix the version of
+  `@graphql-codegen/plugin-helpers@3.1.1`
+
+- Updated dependencies
+  [[`307a5d350`](https://github.com/dotansimha/graphql-code-generator/commit/307a5d350643dd065d228b04ef3b4bd70cac0e81)]:
+  - @graphql-codegen/plugin-helpers@3.1.1
+
+## 3.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  [[`a6c2097f4`](https://github.com/dotansimha/graphql-code-generator/commit/a6c2097f4789c0cce4296ce349790ce29943ed22),
+  [`f79a00e8a`](https://github.com/dotansimha/graphql-code-generator/commit/f79a00e8ae073eab426ca08795c924e716123482),
+  [`c802a0c0b`](https://github.com/dotansimha/graphql-code-generator/commit/c802a0c0b775cfabc5ace3e7fb6655540c6c4d84)]:
+  - @graphql-codegen/plugin-helpers@3.0.0
+
+## 3.2.1
+
+### Patch Changes
+
+- [#8189](https://github.com/dotansimha/graphql-code-generator/pull/8189)
+  [`b408f8238`](https://github.com/dotansimha/graphql-code-generator/commit/b408f8238c00bbb4cd448501093856c06cfde50f)
+  Thanks [@n1ru4l](https://github.com/n1ru4l)! - Fix CommonJS TypeScript resolution with
+  `moduleResolution` `node16` or `nodenext`
+
+- Updated dependencies
+  [[`b408f8238`](https://github.com/dotansimha/graphql-code-generator/commit/b408f8238c00bbb4cd448501093856c06cfde50f)]:
+  - @graphql-codegen/plugin-helpers@2.6.2
+
+## 3.2.0
+
+### Minor Changes
+
+- d84afec09: Support TypeScript ESM modules (`"module": "node16"` and
+  `"moduleResolution": "node16"`).
+
+  [More information on the TypeScript Release Notes.](https://devblogs.microsoft.com/typescript/announcing-typescript-4-7/#ecmascript-module-support-in-node-js)
+
+### Patch Changes
+
+- Updated dependencies [d84afec09]
+- Updated dependencies [a4fe5006b]
+- Updated dependencies [8e44df58b]
+  - @graphql-codegen/plugin-helpers@2.5.0
+
+## 3.1.1
+
+### Patch Changes
+
+- 8643b3bf3: Add GraphQL 16 as a peerDependency
+- 6002feb3d: Fix exports in package.json files for react-native projects
+- Updated dependencies [6002feb3d]
+  - @graphql-codegen/plugin-helpers@2.3.2
+
+## 3.1.0
+
+### Minor Changes
+
+- 440172cfe: support ESM
+
+### Patch Changes
+
+- Updated dependencies [24185985a]
+- Updated dependencies [39773f59b]
+- Updated dependencies [440172cfe]
+  - @graphql-codegen/plugin-helpers@2.1.0
+
+## 3.0.0
+
+### Major Changes
+
+- b0cb13df4: Update to latest `graphql-tools` and `graphql-config` version.
+
+  ‼️ ‼️ ‼️ Please note ‼️ ‼️ ‼️:
+
+  This is a breaking change since Node 10 is no longer supported in `graphql-tools`, and also no
+  longer supported for Codegen packages.
+
+### Patch Changes
+
+- Updated dependencies [b0cb13df4]
+  - @graphql-codegen/plugin-helpers@2.0.0
+
+## 2.0.2
+
+### Patch Changes
+
+- 1183d173: Bump all packages to resolve issues with shared dependencies
+- Updated dependencies [1183d173]
+  - @graphql-codegen/plugin-helpers@1.18.2
+
+## 2.0.1
+
+### Patch Changes
+
+- 1d7c6432: Bump all packages to allow "^" in deps and fix compatibility issues
+- 1d7c6432: Bump versions of @graphql-tools/ packages to fix issues with loading schemas and SDL
+  comments
+- Updated dependencies [1d7c6432]
+- Updated dependencies [1d7c6432]
+  - @graphql-codegen/plugin-helpers@1.17.8
+
+## 2.0.0
+
+### Major Changes
+
+- bc6e5c08: Update plugin configuration API to use object only (`string` is no longer supported)
+
+  ## Migration Notes
+
+  This only effects developers who used to override the `format`. You now need to specify it with a
+  key!
+
+  #### Before
+
+  ```yaml
+  plugins:
+    - time: 'DD-MM-YYYY'
+  ```
+
+  #### After
+
+  ```yaml
+  plugins:
+    - time:
+        format: 'DD-MM-YYYY'
+  ```
+
+## 1.17.10
+
+### Patch Changes
+
+- ee2b01a3: Fixes for issues with publish command
+
+## 1.17.9
+
+### Patch Changes
+
+- 6cb9c96d: Fixes issues with previous release
+
+## 1.17.8
+
+### Patch Changes
+
+- bccfd28c: Fix issues with adding time to .graphql files

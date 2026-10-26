@@ -1,0 +1,77 @@
+import { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+
+/* eslint-disable */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+
+export type AllFilmsWithVariablesQueryQueryVariables = Exact<{
+  first: number;
+}>;
+
+export type AllFilmsWithVariablesQueryQuery = {
+  allFilms: {
+    edges: Array<{
+      node: { ' $fragmentRefs'?: { FilmItemFragment: FilmItemFragment } } | null;
+    } | null> | null;
+  } | null;
+};
+
+export type FilmItemFragment = {
+  id: string;
+  title: string | null;
+  releaseDate: string | null;
+  producers: Array<string | null> | null;
+} & { ' $fragmentName'?: 'FilmItemFragment' };
+
+export class TypedDocumentString<TResult, TVariables>
+  extends String
+  implements DocumentTypeDecoration<TResult, TVariables>
+{
+  __apiType?: NonNullable<DocumentTypeDecoration<TResult, TVariables>['__apiType']>;
+  private value: string;
+  public __meta__?: Record<string, any> | undefined;
+
+  constructor(value: string, __meta__?: Record<string, any> | undefined) {
+    super(value);
+    this.value = value;
+    this.__meta__ = __meta__;
+  }
+
+  override toString(): string & DocumentTypeDecoration<TResult, TVariables> {
+    return this.value;
+  }
+}
+export const FilmItemFragmentDoc = new TypedDocumentString(
+  `
+    fragment FilmItem on Film {
+  id
+  title
+  releaseDate
+  producers
+}
+    `,
+  { fragmentName: 'FilmItem' },
+) as unknown as TypedDocumentString<FilmItemFragment, unknown>;
+export const AllFilmsWithVariablesQueryDocument = new TypedDocumentString(`
+    query allFilmsWithVariablesQuery($first: Int!) {
+  allFilms(first: $first) {
+    edges {
+      node {
+        ...FilmItem
+      }
+    }
+  }
+}
+    fragment FilmItem on Film {
+  id
+  title
+  releaseDate
+  producers
+}`) as unknown as TypedDocumentString<
+  AllFilmsWithVariablesQueryQuery,
+  AllFilmsWithVariablesQueryQueryVariables
+>;

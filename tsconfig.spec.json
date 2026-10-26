@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "moduleResolution": "bundler",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["vitest.config.mts", "packages"],
+  "exclude": [
+    "**/dist",
+    "**/temp",
+    "**/node_modules",
+    "**/tests/test-files",
+    "**/tests/test-documents"
+  ]
+}

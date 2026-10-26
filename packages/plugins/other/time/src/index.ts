@@ -1,0 +1,36 @@
+import { extname } from 'path';
+import { GraphQLSchema } from 'graphql';
+// eslint-disable-next-line n/no-restricted-import -- todo: replace moment in v3
+import moment from 'moment';
+import { PluginFunction, Types } from '@graphql-codegen/plugin-helpers';
+import { TimePluginConfig } from './config.js';
+
+export const plugin: PluginFunction<TimePluginConfig> = async (
+  schema: GraphQLSchema,
+  documents: Types.DocumentFile[],
+  config: TimePluginConfig,
+  info,
+): Promise<string> => {
+  const outputFile = info?.outputFile;
+  let format: string | undefined;
+  let message = 'Generated on ';
+
+  if (config && typeof config === 'object') {
+    if (config.format) {
+      format = config.format;
+    }
+
+    if (config.message) {
+      message = config.message;
+    }
+  }
+
+  const outputFileExtension = outputFile && extname(outputFile);
+  let commentPrefix = '//';
+
+  if ((outputFileExtension || '').toLowerCase() === '.graphql') {
+    commentPrefix = '#';
+  }
+
+  return commentPrefix + ' ' + message + moment().format(format) + '\n';
+};

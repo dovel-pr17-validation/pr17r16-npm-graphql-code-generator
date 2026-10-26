@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@2.1.0/schema.json",
+  "commit": false,
+  "linked": [],
+  "access": "restricted",
+  "baseBranch": "master",
+  "updateInternalDependencies": "patch",
+  "ignore": ["website", "example-*", "rust-example-*", "dev-test*"],
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "dotansimha/graphql-code-generator"
+    }
+  ],
+  "snapshot": {
+    "useCalculatedVersion": true,
+    "prereleaseTemplate": "{tag}-{datetime}-{commit}"
+  }
+}

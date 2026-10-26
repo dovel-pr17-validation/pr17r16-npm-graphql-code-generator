@@ -1,0 +1,29 @@
+{
+  "name": "example-vue-urql",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "dev": "vite",
+    "start": "serve -s dist",
+    "test": "cypress run",
+    "test:end2end": "start-server-and-test start http://localhost:3000 test"
+  },
+  "dependencies": {
+    "@urql/vue": "2.1.0",
+    "graphql": "17.0.2",
+    "vue": "3.5.34"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "workspace:*",
+    "@graphql-codegen/client-preset": "workspace:*",
+    "@vitejs/plugin-vue": "6.0.7",
+    "cypress": "15.15.0",
+    "serve": "14.2.6",
+    "start-server-and-test": "3.0.5",
+    "typescript": "6.0.3",
+    "vite": "8.1.6",
+    "vue-tsc": "3.2.9"
+  }
+}

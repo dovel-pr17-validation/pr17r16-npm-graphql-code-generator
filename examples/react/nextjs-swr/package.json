@@ -1,0 +1,32 @@
+{
+  "name": "rust-example-react-nextjs-swr",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "dev": "next dev",
+    "lint": "next lint",
+    "start": "next start",
+    "test": "cypress run",
+    "test:end2end": "start-server-and-test start http://127.0.0.1:3000 test"
+  },
+  "dependencies": {
+    "@graphql-tools/executor-http": "3.3.0",
+    "next": "15.5.28",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "swr": "2.4.1"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "workspace:*",
+    "@graphql-codegen/schema-ast": "workspace:*",
+    "@swc-contrib/plugin-graphql-codegen-client-preset": "0.31.0",
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "10.4.0",
+    "eslint-config-next": "13.5.1",
+    "typescript": "6.0.3"
+  }
+}

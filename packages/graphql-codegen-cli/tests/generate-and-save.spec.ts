@@ -1,0 +1,903 @@
+import { platform } from 'os';
+import { dirname, join, sep } from 'path';
+import { GraphQLError } from 'graphql';
+import logSymbols from 'log-symbols';
+import { Types } from '@graphql-codegen/plugin-helpers';
+import '@graphql-codegen/testing';
+import { makeDirectorySync } from 'make-dir';
+import { createContext } from '../src/config.js';
+import { generate } from '../src/generate-and-save.js';
+import { loadSchema } from '../src/load.js';
+import * as fs from '../src/utils/file-system.js';
+import { setLogger } from '../src/utils/logger.js';
+
+const SIMPLE_TEST_SCHEMA = `type MyType { f: String } type Query { f: String }`;
+
+const inputFile = join(__dirname, '../temp/input-graphql.tsx');
+const outputFile = join(__dirname, '../temp/output-graphql.tsx');
+
+const writeSpy = vi.spyOn(fs, 'writeFile');
+const readSpy = vi.spyOn(fs, 'readFile');
+const outputErrorSpy = vi.spyOn(process.stderr, 'write');
+
+describe('generate-and-save', () => {
+  beforeEach(() => {
+    // We must call .spyOn and .mockReset these individually instead of vi.resetAllMocks
+    // because there's a `vi.spyOn(process, 'cwd').mockImplementation(() => __dirname);` in vitest.setup.ts
+    //
+    // If we called vi.resetAllMocks, the cwd spy is reset too!
+    // That would cause all `schema` and `documents`paths to be from the root of the workspace
+    writeSpy.mockReset();
+    readSpy.mockReset();
+    outputErrorSpy.mockReset();
+  });
+
+  test('allow to specify overwrite for specific output (should write file)', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: false,
+        generates: {
+          [filename]: {
+            overwrite: true,
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it writes a new file
+    expect(writeSpy).toHaveBeenCalled();
+  });
+
+  test('allow to specify overwrite for specific output (should not write file)', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(async () => ''); // forces file to exist
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: true,
+        generates: {
+          [filename]: {
+            overwrite: false,
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it checks if file is there
+    expect(readSpy).toHaveBeenCalledWith(filename);
+    // makes sure it doesn't write a new file
+    expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  test('should use global overwrite option and write a file', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: true,
+        generates: {
+          [filename]: {
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it writes a new file
+    expect(writeSpy).toHaveBeenCalled();
+  });
+
+  test('should use global overwrite option and not write a file', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(async () => ''); // forces file to exist
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: false,
+        generates: {
+          [filename]: {
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it checks if file is there
+    expect(readSpy).toHaveBeenCalledWith(filename);
+    // makes sure it doesn't write a new file
+    expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  test('should overwrite a file by default', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(() => Promise.resolve(''));
+    readSpy.mockImplementation(async _f => '');
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        generates: {
+          [filename]: {
+            schema: /* GraphQL */ `
+              type OtherType {
+                a: String
+              }
+            `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it doesn't write a new file
+    expect(writeSpy).toHaveBeenCalled();
+  });
+
+  test('should write to an existing file when global overwrite.updateExistingFiles=true', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(async () => ''); // forces file to exist
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: {
+          updateExistingFiles: true,
+          removeStaleFiles: false,
+        },
+        generates: {
+          [filename]: {
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it checks if file is there
+    expect(readSpy).toHaveBeenCalledWith(filename);
+    // makes sure it writes a new file
+    expect(writeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('should NOT write to an existing file when global overwrite.updateExistingFiles=false', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(async () => ''); // forces file to exist
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: {
+          updateExistingFiles: false,
+          removeStaleFiles: true,
+        },
+        generates: {
+          [filename]: {
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it checks if file is there
+    expect(readSpy).toHaveBeenCalledWith(filename);
+    // makes sure it doesn't write a new file
+    expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  test("should write to an existing file when specific output's overwrite.updateExistingFiles=true", async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(async () => ''); // forces file to exist
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: false,
+        generates: {
+          [filename]: {
+            overwrite: {
+              updateExistingFiles: true,
+            },
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it checks if file is there
+    expect(readSpy).toHaveBeenCalledWith(filename);
+    // makes sure it writes a new file
+    expect(writeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("should NOT write to an existing file when specific output's overwrite.updateExistingFiles=false", async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+    readSpy.mockImplementation(async () => ''); // forces file to exist
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        overwrite: {
+          updateExistingFiles: true,
+        },
+        generates: {
+          [filename]: {
+            overwrite: {
+              updateExistingFiles: false,
+            },
+            schema: `
+            type OtherType { a: String }
+          `,
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    // makes sure it checks if file is there
+    expect(readSpy).toHaveBeenCalledWith(filename);
+    // makes sure it doesn't write a new file
+    expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  test('should override generated files', async () => {
+    vi.unmock('fs');
+    const fs = await import('fs');
+
+    makeDirectorySync(dirname(outputFile));
+    if (fs.existsSync(outputFile)) {
+      fs.unlinkSync(outputFile);
+    }
+    fs.writeFileSync(
+      inputFile,
+      `
+    import gql from 'graphql-tag';
+    const MyQuery = gql\`query MyQuery { f }\`;
+  `,
+      'utf8',
+    );
+    const generateOnce: () => Promise<Types.FileOutput[]> = () =>
+      generate(
+        {
+          schema: SIMPLE_TEST_SCHEMA,
+          documents: inputFile,
+          generates: {
+            [outputFile]: {
+              plugins: ['typescript', 'typescript-operations'],
+            },
+          },
+        },
+        true,
+      );
+    const [firstOutput] = await generateOnce();
+    fs.writeFileSync(firstOutput.filename, firstOutput.content);
+    await generateOnce();
+  });
+  test('should extract a document from the gql tag (imported from apollo-server)', async () => {
+    const filename = 'overwrite.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+
+    const output = await generate(
+      {
+        schema: './tests/test-files/schema-dir/gatsby-and-custom-parsers/apollo-server.ts',
+        generates: {
+          [filename]: {
+            plugins: ['typescript'],
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    expect(output[0].content).toMatch('Used apollo-server');
+    // makes sure it doesn't write a new file
+    expect(writeSpy).toHaveBeenCalled();
+  });
+  test('should allow to alter the content with the beforeOneFileWrite hook', async () => {
+    const filename = 'modify.ts';
+    writeSpy.mockImplementation(() => Promise.resolve());
+
+    const output = await generate(
+      {
+        schema: SIMPLE_TEST_SCHEMA,
+        generates: {
+          [filename]: {
+            plugins: ['typescript'],
+            hooks: {
+              beforeOneFileWrite: [() => 'new content'],
+            },
+          },
+        },
+      },
+      true,
+    );
+
+    expect(output.length).toBe(1);
+    expect(output[0].content).toMatch('new content');
+    // makes sure it doesn't write a new file
+    expect(writeSpy).toHaveBeenCalled();
+  });
+
+  describe('Errors when loading pointers', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    beforeEach(() => {
+      // By default, the NODE_ENV is set to 'test', and this is used to silent console errors.
+      // For these tests below, we want to see what's being logged out to console errors.
+      process.env.NODE_ENV = 'not_test_so_error';
+      vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    });
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    test('Schema syntax error - should print native GraphQLError', async () => {
+      expect.assertions(1);
+      outputErrorSpy.mockImplementation(() => true);
+      try {
+        await generate(
+          {
+            verbose: true,
+            schema: './tests/test-files/schema-dir/error-schema.graphql',
+            generates: {
+              'src/test.ts': {
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        // cwd is different for every machine, remember to replace local path with this after updating snapshot.
+        // GraphQL source names are always forward-slash, regardless of platform, so normalize to match.
+        const cwd = process.cwd().split(sep).join('/');
+        if (platform() === 'win32') {
+          expect(outputErrorSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+            "[FAILED] Failed to load schema from ./tests/test-files/schema-dir/error-schema.graphql:
+            Syntax Error: Expected Name, found "!".
+
+            ${cwd}/tests/test-files/schema-dir/error-schema.graphql:2:15
+            1 | type Query {
+            2 |   foo: String!!
+              |               ^
+            3 | }
+
+            GraphQL Code Generator supports:
+
+            - ES Modules and CommonJS exports (export as default or named export "schema")
+            - Introspection JSON File
+            - URL of GraphQL endpoint
+            - Multiple files with type definitions (glob expression)
+            - String in config file
+
+            Try to use one of above options and run codegen again.
+
+            "
+          `);
+        } else {
+          expect(outputErrorSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+          "[FAILED] Failed to load schema from ./tests/test-files/schema-dir/error-schema.graphql:
+          [FAILED] Syntax Error: Expected Name, found "!".
+
+          [FAILED] ${cwd}/tests/test-files/schema-dir/error-schema.graphql:2:15
+          [FAILED] 1 | type Query {
+          [FAILED] 2 |   foo: String!!
+          [FAILED]   |               ^
+          [FAILED] 3 | }
+
+          [FAILED] GraphQL Code Generator supports:
+
+          [FAILED] - ES Modules and CommonJS exports (export as default or named export "schema")
+          [FAILED] - Introspection JSON File
+          [FAILED] - URL of GraphQL endpoint
+          [FAILED] - Multiple files with type definitions (glob expression)
+          [FAILED] - String in config file
+
+          [FAILED] Try to use one of above options and run codegen again.
+
+          "
+        `);
+        }
+      }
+    });
+
+    test('Document syntax error - should print native GraphQLError', async () => {
+      expect.assertions(1);
+      outputErrorSpy.mockImplementation(() => true);
+      try {
+        await generate(
+          {
+            verbose: true,
+            schema: './tests/test-files/schema-dir/schema.ts',
+            documents: './tests/test-files/error-document.graphql',
+            generates: {
+              'src/test.ts': {
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        // cwd is different for every machine, remember to replace local path with this after updating snapshot.
+        // GraphQL source names are always forward-slash, regardless of platform, so normalize to match.
+        const cwd = process.cwd().split(sep).join('/');
+        if (platform() === 'win32') {
+          expect(outputErrorSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+            "[FAILED] Failed to load documents from ./tests/test-files/error-document.graphql:
+            Syntax Error: Expected "{", found <EOF>.
+
+            ${cwd}/tests/test-files/error-document.graphql:2:1
+            1 | query
+            2 |
+              | ^
+            "
+          `);
+        } else {
+          expect(outputErrorSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+          "[FAILED] Failed to load documents from ./tests/test-files/error-document.graphql:
+          [FAILED] Syntax Error: Expected "{", found <EOF>.
+
+          [FAILED] ${cwd}/tests/test-files/error-document.graphql:2:1
+          [FAILED] 1 | query
+          [FAILED] 2 |
+          [FAILED]   | ^
+          "
+        `);
+        }
+      }
+    });
+
+    test('Document syntax error - when `*` is used in documents filename pattern, and some failed but some passed, should report error by default (noSilentErrors: true)', async () => {
+      expect.assertions(6);
+      outputErrorSpy.mockImplementation(() => true);
+      try {
+        await generate(
+          {
+            verbose: true,
+            schema: './tests/test-files/schema-dir/schema.ts',
+            documents: './tests/test-files/error-document-error-keyword.graphql.*.ts', // Should find `error-document-error-keyword.graphql.1.ts` (failed) and `error-document-error-keyword.graphql.2.ts` (passed)
+            generates: {
+              'src/gql/': {
+                preset: 'client-preset',
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        // GraphQL source names are always forward-slash, regardless of platform, so normalize to match.
+        const cwd = process.cwd().split(sep).join('/');
+        if (platform() === 'win32') {
+          // Note: cannot use toMatchInlineSnapshot here because spacing in the snapshot gets formatted by prettier.
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            '[FAILED] Failed to load documents from ./tests/test-files/error-document-error-keyword.graphql.*.ts,!src/gql/:',
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('Syntax Error: Unexpected Name "qu".');
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            // GraphQL source names are always forward-slash, regardless of platform.
+            `${cwd}/tests/test-files/error-document-error-keyword.graphql.1.ts:2:3`,
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('2 |   qu ery Test {');
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('  |   ^');
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('3 |     user {');
+        } else {
+          // Note: cannot use toMatchInlineSnapshot here because spacing in the snapshot gets formatted by prettier.
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            '[FAILED] Failed to load documents from ./tests/test-files/error-document-error-keyword.graphql.*.ts,!src/gql/:',
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            '[FAILED] Syntax Error: Unexpected Name "qu".',
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            // GraphQL source names are always forward-slash, regardless of platform.
+            `[FAILED] ${cwd}/tests/test-files/error-document-error-keyword.graphql.1.ts:2:3`,
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('[FAILED] 2 |   qu ery Test {');
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('[FAILED]   |   ^');
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('[FAILED] 3 |     user {');
+        }
+      }
+    });
+
+    test('Schema loading error - should print every error when multiple loaders fail for one pointer', async () => {
+      const loaders = [
+        {
+          load: async (): Promise<never> => {
+            throw new GraphQLError('First loader failed');
+          },
+        },
+        {
+          load: async (): Promise<never> => {
+            throw new GraphQLError('Second loader failed');
+          },
+        },
+      ];
+
+      await expect(
+        loadSchema({ 'schema.graphql': {} }, { generates: {}, config: { loaders } }),
+      ).rejects.toThrow(
+        new Error(
+          [
+            'Failed to load schema from schema.graphql:',
+            'First loader failed',
+            '',
+            'Second loader failed',
+            '\nGraphQL Code Generator supports:',
+            '\n- ES Modules and CommonJS exports (export as default or named export "schema")',
+            '- Introspection JSON File',
+            '- URL of GraphQL endpoint',
+            '- Multiple files with type definitions (glob expression)',
+            '- String in config file',
+            '\nTry to use one of above options and run codegen again.\n',
+          ].join('\n'),
+        ),
+      );
+    });
+
+    test('Schema loading error - should print a thrown non-Error value without a stack line', async () => {
+      const loaders = [
+        {
+          load: async (): Promise<never> => {
+            throw 'Loader failed with a string';
+          },
+        },
+      ];
+
+      await expect(
+        loadSchema({ 'schema.graphql': {} }, { generates: {}, config: { loaders } }),
+      ).rejects.toThrow(
+        new Error(
+          [
+            'Failed to load schema from schema.graphql:',
+            'Loader failed with a string',
+            '\nGraphQL Code Generator supports:',
+            '\n- ES Modules and CommonJS exports (export as default or named export "schema")',
+            '- Introspection JSON File',
+            '- URL of GraphQL endpoint',
+            '- Multiple files with type definitions (glob expression)',
+            '- String in config file',
+            '\nTry to use one of above options and run codegen again.\n',
+          ].join('\n'),
+        ),
+      );
+    });
+
+    test('No documents found - should throw error by default', async () => {
+      expect.assertions(platform() === 'win32' ? 2 : 1);
+      outputErrorSpy.mockImplementation(() => true);
+      try {
+        await generate(
+          {
+            verbose: true,
+            schema: './tests/test-files/schema-dir/schema.ts',
+            documents: './tests/test-files/document-file-does-not-exist.graphql',
+            generates: {
+              'src/test.ts': {
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        if (platform() === 'win32') {
+          // Note: cannot use toMatchInlineSnapshot here because spacing in the snapshot gets formatted by prettier.
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            'Unable to find any GraphQL type definitions for the following pointers:',
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            '- ./tests/test-files/document-file-does-not-exist.graphql',
+          );
+        } else {
+          expect(outputErrorSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+          "
+          [FAILED]       Unable to find any GraphQL type definitions for the following pointers:
+          [FAILED]         - ./tests/test-files/document-file-does-not-exist.graphql
+          "
+        `);
+        }
+      }
+    });
+
+    test('No documents found - should not fail if ignoreNoDocuments=true', async () => {
+      outputErrorSpy.mockImplementation(() => true);
+      await generate(
+        {
+          verbose: true,
+          ignoreNoDocuments: true,
+          schema: './tests/test-files/schema-dir/schema.ts',
+          documents: './tests/test-files/document-file-does-not-exist.graphql',
+          generates: {
+            'src/test.ts': {
+              plugins: ['typescript'],
+            },
+          },
+        },
+        false,
+      );
+      expect(outputErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('No documents found - GraphQL Config - should throw error by default', async () => {
+      outputErrorSpy.mockImplementation(() => true);
+      expect.assertions(platform() === 'win32' ? 2 : 1);
+      try {
+        const config = await createContext({
+          config: './tests/test-files/graphql.config.no-doc.cjs',
+          project: '',
+          errorsOnly: true,
+          overwrite: true,
+          profile: true,
+          require: [],
+          silent: false,
+          watch: false,
+        });
+
+        await generate(config, false);
+      } catch {
+        if (platform() === 'win32') {
+          // Note: cannot use toMatchInlineSnapshot here because spacing in the snapshot gets formatted by prettier.
+          expect(outputErrorSpy.mock.calls[0][0]).toContain(
+            'Unable to find any GraphQL type definitions for the following pointers:',
+          );
+          expect(outputErrorSpy.mock.calls[0][0]).toContain('- ../test-documents/empty.graphql');
+        } else {
+          expect(outputErrorSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+          "
+          [FAILED]       Unable to find any GraphQL type definitions for the following pointers:
+          [FAILED]         - ../test-documents/empty.graphql
+          "
+        `);
+        }
+      }
+    });
+
+    test('No documents found - GraphQL Config - should not fail if ignoreNoDocuments=true', async () => {
+      outputErrorSpy.mockImplementation(() => true);
+      vi.spyOn(fs, 'writeFile').mockImplementation(() => Promise.resolve());
+      const config = await createContext({
+        config: './tests/test-files/graphql.config.no-doc-ignored.cjs',
+        project: '',
+        errorsOnly: true,
+        overwrite: true,
+        profile: true,
+        require: [],
+        silent: false,
+        watch: false,
+      });
+
+      await generate(config, false);
+
+      expect(outputErrorSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('config.allowPartialOutputs', () => {
+    const mockLogger: any = {
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+
+    beforeEach(() => {
+      setLogger(mockLogger);
+      vi.resetAllMocks();
+    });
+
+    test('when allowPartialOutputs=true - writes partial success and does not throw', async () => {
+      const invalidSchema = /* GraphQL */ `
+        type A {
+          id: WRONG_TYPE!
+        }
+      `;
+      const validSchema = /* GraphQL */ `
+        type B {
+          id: ID!
+        }
+      `;
+      const output = await generate(
+        {
+          allowPartialOutputs: true,
+          generates: {
+            'src/a.ts': {
+              schema: invalidSchema,
+              plugins: ['typescript'],
+            },
+            'src/b.ts': {
+              schema: validSchema,
+              plugins: ['typescript'],
+            },
+          },
+        },
+        false,
+      );
+
+      expect(output.length).toBe(1);
+      expect(output[0].filename).toBe('src/b.ts');
+      expect(mockLogger.warn.mock.calls[0][0]).toBeSimilarStringTo(
+        `${logSymbols.warning} One or more errors occurred, some files were generated. To prevent any output on errors, set config.allowPartialOutputs=false`,
+      );
+    });
+
+    test('when allowPartialOutputs=true - complete failure throws', async () => {
+      expect.assertions(2);
+
+      try {
+        const invalidSchema = /* GraphQL */ `
+          type A {
+            id: WRONG_TYPE!
+          }
+        `;
+        await generate(
+          {
+            allowPartialOutputs: true,
+            generates: {
+              'src/a.ts': {
+                schema: invalidSchema,
+                plugins: ['typescript'],
+              },
+              'src/b.ts': {
+                schema: invalidSchema,
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+        expect(mockLogger.error).not.toHaveBeenCalled();
+      }
+    });
+
+    test('when allowPartialOutputs=false - does not write partial success and throws', async () => {
+      expect.assertions(1);
+
+      const invalidSchema = /* GraphQL */ `
+        type A {
+          id: WRONG_TYPE!
+        }
+      `;
+      const validSchema = /* GraphQL */ `
+        type B {
+          id: ID!
+        }
+      `;
+
+      try {
+        await generate(
+          {
+            allowPartialOutputs: false,
+            generates: {
+              'src/a.ts': {
+                schema: invalidSchema,
+                plugins: ['typescript'],
+              },
+              'src/b.ts': {
+                schema: validSchema,
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        expect(mockLogger.error.mock.calls[0][0]).toBeSimilarStringTo(
+          `${logSymbols.error} One or more errors occurred, no files were generated. To allow output on errors, set config.allowPartialOutputs=true`,
+        );
+      }
+    });
+
+    test('when allowPartialOutputs=false - an unresolvable preset also throws (no partial output)', async () => {
+      await expect(
+        generate(
+          {
+            allowPartialOutputs: false,
+            schema: SIMPLE_TEST_SCHEMA,
+            generates: {
+              'src/a.ts': {
+                // @ts-expect-error intentionally invalid preset name
+                preset: 'this-preset-does-not-exist',
+              },
+              'src/b.ts': {
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        ),
+      ).rejects.toThrow("Unable to find preset matching 'this-preset-does-not-exist'");
+
+      expect(mockLogger.error.mock.calls[0][0]).toBeSimilarStringTo(
+        `${logSymbols.error} One or more errors occurred, no files were generated. To allow output on errors, set config.allowPartialOutputs=true`,
+      );
+    });
+
+    test('when allowPartialOutputs=false - complete failure throws', async () => {
+      expect.assertions(2);
+
+      try {
+        const invalidSchema = /* GraphQL */ `
+          type A {
+            id: WRONG_TYPE!
+          }
+        `;
+        await generate(
+          {
+            allowPartialOutputs: false,
+            generates: {
+              'src/a.ts': {
+                schema: invalidSchema,
+                plugins: ['typescript'],
+              },
+              'src/b.ts': {
+                schema: invalidSchema,
+                plugins: ['typescript'],
+              },
+            },
+          },
+          false,
+        );
+      } catch {
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+        expect(mockLogger.error).not.toHaveBeenCalled();
+      }
+    });
+  });
+});

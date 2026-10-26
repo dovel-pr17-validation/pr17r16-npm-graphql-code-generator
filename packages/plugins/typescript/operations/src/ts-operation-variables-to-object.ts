@@ -1,0 +1,118 @@
+import { Kind, TypeNode } from 'graphql';
+import {
+  ConvertNameFn,
+  DEFAULT_INPUT_SCALARS,
+  NormalizedScalarsMap,
+  OperationVariablesToObject,
+  ParsedEnumValuesMap,
+  printTypeScriptMaybeType,
+  type ConvertSchemaEnumToDeclarationBlockString,
+  type NormalizedOperationAvoidOptionalsConfig,
+} from '@graphql-codegen/visitor-plugin-common';
+
+export class TypeScriptOperationVariablesToObject extends OperationVariablesToObject {
+  constructor(
+    private _config: {
+      avoidOptionals: NormalizedOperationAvoidOptionalsConfig;
+      immutableTypes: boolean;
+      inputMaybeValue: string;
+      enumType: ConvertSchemaEnumToDeclarationBlockString['outputType'];
+    },
+    _scalars: NormalizedScalarsMap,
+    _convertName: ConvertNameFn,
+    _namespacedImportName: string | null,
+    _enumNames: string[],
+    _enumPrefix: boolean,
+    _enumSuffix: boolean,
+    _enumValues: ParsedEnumValuesMap,
+    _applyCoercion: boolean,
+  ) {
+    super(
+      _scalars,
+      _convertName,
+      _namespacedImportName,
+      _enumNames,
+      _enumPrefix,
+      _enumSuffix,
+      _enumValues,
+      _applyCoercion,
+      {},
+    );
+  }
+
+  protected formatFieldString(
+    fieldName: string,
+    isNonNullType: boolean,
+    hasDefaultValue: boolean,
+  ): string {
+    return `${fieldName}${this.getAvoidOption(isNonNullType, hasDefaultValue) ? '?' : ''}`;
+  }
+
+  protected formatTypeString(
+    fieldType: string,
+    _isNonNullType: boolean,
+    _hasDefaultValue: boolean,
+  ): string {
+    return fieldType;
+  }
+
+  protected clearOptional(str: string): string {
+    const maybeSuffix = this._config.inputMaybeValue.replace('T', ''); // e.g. turns `T | null | undefined` to ` | null | undefined`
+
+    if (str.endsWith(maybeSuffix)) {
+      return (str = str.substring(0, str.length - maybeSuffix.length));
+    }
+
+    return str;
+  }
+
+  protected getAvoidOption(isNonNullType: boolean, hasDefaultValue: boolean): boolean {
+    const options = this._config.avoidOptionals;
+    return (
+      ((options.variableValue || !options.defaultValue) && hasDefaultValue) ||
+      (!options.variableValue && !isNonNullType)
+    );
+  }
+
+  protected getScalar(name: string): string {
+    return this._scalars[name]?.input ?? DEFAULT_INPUT_SCALARS[name].input ?? 'unknown';
+  }
+
+  protected getPunctuation(): string {
+    return ';';
+  }
+
+  public wrapAstTypeWithModifiers(
+    baseType: string,
+    typeNode: TypeNode,
+    applyCoercion = false,
+  ): string {
+    if (typeNode.kind === Kind.NON_NULL_TYPE) {
+      const type = this.wrapAstTypeWithModifiers(baseType, typeNode.type, applyCoercion);
+
+      return this.clearOptional(type);
+    }
+    if (typeNode.kind === Kind.LIST_TYPE) {
+      const innerType = this.wrapAstTypeWithModifiers(baseType, typeNode.type, applyCoercion);
+      const listInputCoercionExtension = applyCoercion ? ` | ${innerType}` : '';
+
+      return this.wrapMaybe(
+        `${this._config.immutableTypes ? 'ReadonlyArray' : 'Array'}<${innerType}>${listInputCoercionExtension}`,
+      );
+    }
+    if (
+      this._config.enumType === 'native-with-string-values' &&
+      this._enumNames.includes(typeNode.name.value)
+    ) {
+      return this.wrapMaybe(`${baseType} | \`\${${baseType}}\``);
+    }
+    return this.wrapMaybe(baseType);
+  }
+
+  protected wrapMaybe(type: string): string {
+    return printTypeScriptMaybeType({
+      type,
+      pattern: this._config.inputMaybeValue,
+    });
+  }
+}

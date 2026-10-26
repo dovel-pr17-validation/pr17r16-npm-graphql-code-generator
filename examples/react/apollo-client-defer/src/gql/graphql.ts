@@ -1,0 +1,114 @@
+import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core';
+
+/* eslint-disable */
+/** Internal type. DO NOT USE DIRECTLY. */
+type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+/** Internal type. DO NOT USE DIRECTLY. */
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+
+export type SlowFieldFragmentFragment = { slowField: string } & {
+  ' $fragmentName'?: 'SlowFieldFragmentFragment';
+};
+
+export type SlowAndFastFieldWithDeferQueryVariables = Exact<{ [key: string]: never }>;
+
+export type SlowAndFastFieldWithDeferQuery = { fastField: string } & (
+  | { inlinedSlowField: string }
+  | { inlinedSlowField?: never }
+) & { ' $fragmentRefs'?: { SlowFieldFragmentFragment: Incremental<SlowFieldFragmentFragment> } };
+
+export const SlowFieldFragmentFragmentDoc = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'SlowFieldFragment' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'Query' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'slowField' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'waitFor' },
+                value: { kind: 'IntValue', value: '5000' },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<SlowFieldFragmentFragment, unknown>;
+export const SlowAndFastFieldWithDeferDocument = {
+  __meta__: { deferredFields: { SlowFieldFragment: ['slowField'] } },
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'SlowAndFastFieldWithDefer' },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'fastField' } },
+          {
+            kind: 'FragmentSpread',
+            name: { kind: 'Name', value: 'SlowFieldFragment' },
+            directives: [{ kind: 'Directive', name: { kind: 'Name', value: 'defer' } }],
+          },
+          {
+            kind: 'InlineFragment',
+            directives: [{ kind: 'Directive', name: { kind: 'Name', value: 'defer' } }],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                {
+                  kind: 'Field',
+                  alias: { kind: 'Name', value: 'inlinedSlowField' },
+                  name: { kind: 'Name', value: 'slowField' },
+                  arguments: [
+                    {
+                      kind: 'Argument',
+                      name: { kind: 'Name', value: 'waitFor' },
+                      value: { kind: 'IntValue', value: '5000' },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'SlowFieldFragment' },
+      typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'Query' } },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'slowField' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'waitFor' },
+                value: { kind: 'IntValue', value: '5000' },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<
+  SlowAndFastFieldWithDeferQuery,
+  SlowAndFastFieldWithDeferQueryVariables
+>;

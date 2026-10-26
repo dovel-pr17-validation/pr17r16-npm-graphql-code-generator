@@ -1,0 +1,28 @@
+import { GraphQLSchema } from 'graphql';
+import { Types } from '@graphql-codegen/plugin-helpers';
+import { optimizeDocuments } from '@graphql-tools/relay-operation-optimizer';
+
+export function optimizeOperations(
+  schema: GraphQLSchema,
+  documents: Types.DocumentFile[],
+  options?: { includeFragments?: boolean },
+): Types.DocumentFile[] {
+  const newDocuments = optimizeDocuments(
+    schema,
+    documents.map(s => {
+      if (!s.document) {
+        throw new Error(
+          `Cannot optimize the document at "${s.location}": it has no parsed document`,
+        );
+      }
+      return s.document;
+    }),
+    options,
+  );
+
+  return newDocuments.map((document, index) => ({
+    ...documents[index],
+    location: documents[index]?.location || 'optimized by relay',
+    document,
+  }));
+}

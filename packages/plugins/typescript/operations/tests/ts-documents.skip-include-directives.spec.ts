@@ -1,0 +1,1394 @@
+import { buildSchema, parse, versionInfo } from 'graphql';
+import { mergeOutputs } from '@graphql-codegen/plugin-helpers';
+import { validateTs } from '@graphql-codegen/testing';
+import { plugin } from '../src/index.js';
+import { schema } from './shared/schema.js';
+
+describe('TypeScript Operations Plugin - @include directives', () => {
+  it('should resolve optionals according to maybeValue', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User!
+      }
+
+      type User {
+        name: String!
+        age: Int
+        address: String!
+        nicknames: [String!]
+        parents: [User!]!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($showProperty: Boolean!) {
+        user {
+          name
+          age
+          address @include(if: $showProperty)
+          nicknames @include(if: $showProperty)
+          parents @include(if: $showProperty)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      { maybeValue: "T | 'specialType'" },
+      { outputFile: 'graphql.ts' },
+    );
+    expect(content).toMatchInlineSnapshot(`
+        "export type UserQueryVariables = Exact<{
+          showProperty: boolean;
+        }>;
+
+
+        export type UserQuery = { user: { name: string, age: number | 'specialType', address?: string, nicknames?: Array<string> | 'specialType', parents?: Array<User> } };
+        "
+      `);
+  });
+
+  it('should add undefined as possible value according to allowUndefinedQueryVariables', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User!
+      }
+
+      type User {
+        name: String!
+        age: Int
+        address: String!
+        nicknames: [String!]
+        parents: [User!]!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($showProperty: Boolean!) {
+        user {
+          name
+          age
+          address @include(if: $showProperty)
+          nicknames @include(if: $showProperty)
+          parents @include(if: $showProperty)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      { allowUndefinedQueryVariables: true },
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+        "export type UserQueryVariables = Exact<{
+          showProperty: boolean;
+        }> | undefined;
+
+
+        export type UserQuery = { user: { name: string, age: number | null, address?: string, nicknames?: Array<string> | null, parents?: Array<User> } };
+        "
+      `);
+  });
+
+  it('#2506 - inline fragment without typeCondition specified', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+      }
+
+      type User {
+        name: String
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($withUser: Boolean! = false) {
+        ... @include(if: $withUser) {
+          user {
+            name
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserQueryVariables = Exact<{
+        withUser?: boolean;
+      }>;
+
+
+      export type UserQuery =
+        | { user?: { name: string | null } | null }
+        | Record<PropertyKey, never>
+      ;
+      "
+    `);
+  });
+
+  it('#10616 - @include on fragment with inlineFragmentTypes:combine should generate optional fragment', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+      }
+
+      type User {
+        name: String
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      fragment Name on User {
+        name
+      }
+      query user($withName: Boolean! = false) {
+        user {
+          ...Name @include(if: $withName)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      { inlineFragmentTypes: 'combine' },
+      { outputFile: '' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type NameFragment = { name: string | null };
+
+      export type UserQueryVariables = Exact<{
+        withName?: boolean;
+      }>;
+
+
+      export type UserQuery = { user:
+          | { name?: string | null }
+          | Record<PropertyKey, never>
+         | null };
+      "
+    `);
+  });
+
+  it('fields with @include should pre resolve into optional', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User!
+      }
+
+      type User {
+        name: String!
+        address: String!
+        nicknames: [String!]
+        parents: [User!]!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($showAddress: Boolean!) {
+        user {
+          name
+          address @include(if: $showAddress)
+          nicknames @include(if: $showNicknames)
+          parents @include(if: $showParents)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+        "export type UserQueryVariables = Exact<{
+          showAddress: boolean;
+        }>;
+
+
+        export type UserQuery = { user: { name: string, address?: string, nicknames?: Array<string> | null, parents?: Array<User> } };
+        "
+      `);
+  });
+
+  it('objects with @include should pre resolve into optional', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User!
+      }
+
+      type User {
+        id: String!
+        name: String!
+        address: Address!
+        friends: [User!]!
+        moreFriends: [User!]!
+      }
+
+      type Address {
+        city: String!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($showAddress: Boolean!, $showName: Boolean!) {
+        user {
+          id
+          name @include(if: $showName)
+          address @include(if: $showAddress) {
+            city
+          }
+          friends @include(if: $isFriendly) {
+            id
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+        "export type UserQueryVariables = Exact<{
+          showAddress: boolean;
+          showName: boolean;
+        }>;
+
+
+        export type UserQuery = { user: { id: string, name?: string, address?: { city: string }, friends?: Array<{ id: string }> } };
+        "
+      `);
+  });
+
+  it('optionals (?) on types should be avoided by default', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        me: User!
+      }
+
+      type User {
+        messages: [Message!]!
+      }
+
+      type Message {
+        content: String!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query MyQuery($include: Boolean!) {
+        me {
+          messages @include(if: $include) {
+            content
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      { nonOptionalTypename: true },
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+        "export type MyQueryQueryVariables = Exact<{
+          include: boolean;
+        }>;
+
+
+        export type MyQueryQuery = { __typename: 'Query', me: { __typename: 'User', messages?: Array<{ __typename: 'Message', content: string }> } };
+        "
+      `);
+  });
+
+  it('inline fragment with conditional directives', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+        group: Group!
+      }
+
+      type User {
+        name: String
+      }
+
+      type Group {
+        id: Int!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($withUser: Boolean! = false) {
+        ... @include(if: $withUser) {
+          user {
+            name
+          }
+          group {
+            id
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserQueryVariables = Exact<{
+        withUser?: boolean;
+      }>;
+
+
+      export type UserQuery =
+        | { user?: { name: string | null } | null, group?: { id: number } }
+        | Record<PropertyKey, never>
+      ;
+      "
+    `);
+  });
+
+  it('resolve optionals according to maybeValue and conditional directives', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User!
+      }
+
+      type User {
+        name: String!
+        age: Int
+        address: String!
+        nicknames: [String!]
+        parents: [User!]!
+      }
+    `);
+
+    const fragment = parse(/* GraphQL */ `
+      query user($showProperty: Boolean!) {
+        user {
+          name
+          age
+          address @include(if: $showProperty)
+          nicknames @include(if: $showProperty)
+          parents @include(if: $showProperty)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document: fragment }],
+      { maybeValue: "T | 'specialType'" },
+      { outputFile: 'graphql.ts' },
+    );
+    expect(content).toMatchInlineSnapshot(`
+        "export type UserQueryVariables = Exact<{
+          showProperty: boolean;
+        }>;
+
+
+        export type UserQuery = { user: { name: string, age: number | 'specialType', address?: string, nicknames?: Array<string> | 'specialType', parents?: Array<User> } };
+        "
+      `);
+  });
+
+  it('generates optional field when @include is used on an aliased field', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query GetUsers($included: Boolean!) {
+        aliasedUsers: users @include(if: $included) {
+          id
+          userName: name @include(if: $included)
+        }
+        users {
+          id
+          userName: name @include(if: $included)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type GetUsersQueryVariables = Exact<{
+        included: boolean;
+      }>;
+
+
+      export type GetUsersQuery = { aliasedUsers?: Array<{ id: string, userName?: string }>, users: Array<{ id: string, userName?: string }> };
+      "
+    `);
+  });
+
+  it('generates optional object when @include is used on an inline fragment', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        nickName: String!
+        age: Int!
+        createdAt: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query User($included: Boolean!) {
+        user {
+          id
+          ... @include(if: $included) {
+            name
+            niName: nickName
+          }
+          ... on User @include(if: $included) {
+            age
+          }
+          ... {
+            createdAt
+          }
+        }
+      }
+      query GetUsers($included: Boolean!) {
+        users {
+          id
+          ... @include(if: $included) {
+            name
+            niName: nickName
+          }
+          ... on User @include(if: $included) {
+            age
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserQueryVariables = Exact<{
+        included: boolean;
+      }>;
+
+
+      export type UserQuery = { user: { createdAt: string, id: string } & { name?: string, niName?: string } & { age?: number } | null };
+
+      export type GetUsersQueryVariables = Exact<{
+        included: boolean;
+      }>;
+
+
+      export type GetUsersQuery = { users: Array<{ id: string } & { name?: string, niName?: string } & { age?: number }> };
+      "
+    `);
+  });
+
+  it('generates optional object when @include is used on a fragment spread', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        nickName: String!
+        age: Int!
+        createdAt: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query User($included: Boolean!) {
+        user {
+          id
+          ...User_Name @include(if: $included)
+          ...User_Age @include
+          ...User_CreatedAt # This is not conditional, so it should be merged with base selection set that includes the id field
+        }
+      }
+      query GetUsers($included: Boolean!) {
+        users {
+          id
+          ...User_Name @include(if: $included)
+          ...User_Age @include(if: $included)
+          ...User_CreatedAt
+        }
+      }
+
+      fragment User_Name on User {
+        name
+        niName: nickName
+      }
+
+      fragment User_Age on User {
+        age
+      }
+
+      fragment User_CreatedAt on User {
+        createdAt
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserQueryVariables = Exact<{
+        included: boolean;
+      }>;
+
+
+      export type UserQuery = { user: { id: string, createdAt: string } & { name?: string, niName?: string } & { age?: number } | null };
+
+      export type GetUsersQueryVariables = Exact<{
+        included: boolean;
+      }>;
+
+
+      export type GetUsersQuery = { users: Array<{ id: string, createdAt: string } & { name?: string, niName?: string } & { age?: number }> };
+
+      export type User_NameFragment = { name: string, niName: string };
+
+      export type User_AgeFragment = { age: number };
+
+      export type User_CreatedAtFragment = { createdAt: string };
+      "
+    `);
+  });
+
+  it('handles conditional spread of a fragment whose top-level selections contain inline fragments', async () => {
+    // Regression: when the spread fragment's top-level selection set contains
+    // an INLINE_FRAGMENT (or nested FRAGMENT_SPREAD), the conditional path used
+    // to push those raw AST nodes into `buildSelectionSet`, which only accepts
+    // FIELD/DIRECTIVE for raw nodes and threw `TypeError: Unexpected type.`.
+    const testSchema = buildSchema(/* GraphQL */ `
+      type Book {
+        id: ID!
+        title: String!
+      }
+      type Magazine {
+        id: ID!
+        issue: Int!
+      }
+      union Publication = Book | Magazine
+      type Library {
+        id: ID!
+        name: String!
+        featured: Publication
+      }
+      type Query {
+        library(id: ID!): Library
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      fragment PublicationFragment on Publication {
+        ... on Book {
+          id
+          title
+        }
+        ... on Magazine {
+          id
+          issue
+        }
+      }
+
+      query Library($includeFeatured: Boolean!) {
+        library(id: "x") {
+          id
+          name
+          featured {
+            ...PublicationFragment @include(if: $includeFeatured)
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      testSchema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    // Should not throw, and should produce a usable type where the Publication
+    // fields appear when includeFeatured=true and an empty-object variant
+    // covers includeFeatured=false.
+    expect(content).toContain('LibraryQuery');
+    expect(content).toContain('featured');
+    expect(content).toMatchInlineSnapshot(`
+      "type PublicationFragment_Book_Fragment = { id: string, title: string };
+
+      type PublicationFragment_Magazine_Fragment = { id: string, issue: number };
+
+      export type PublicationFragmentFragment =
+        | PublicationFragment_Book_Fragment
+        | PublicationFragment_Magazine_Fragment
+      ;
+
+      export type LibraryQueryVariables = Exact<{
+        includeFeatured: boolean;
+      }>;
+
+
+      export type LibraryQuery = { library: { id: string, name: string, featured:
+            | { id: string, title: string }
+            | { id: string, issue: number }
+            | Record<PropertyKey, never>
+           | null } | null };
+      "
+    `);
+  });
+
+  it('handles conditional spread of a fragment whose top-level selections are fragment spreads', async () => {
+    // Same regression, but the inline fragments inside the spread fragment have
+    // been refactored into named fragment spreads — also failed before the fix.
+    const testSchema = buildSchema(/* GraphQL */ `
+      type Book {
+        id: ID!
+        title: String!
+      }
+      type Magazine {
+        id: ID!
+        issue: Int!
+      }
+      union Publication = Book | Magazine
+      type Library {
+        id: ID!
+        featured: Publication
+      }
+      type Query {
+        library(id: ID!): Library
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      fragment BookFragment on Book {
+        id
+        title
+      }
+      fragment MagazineFragment on Magazine {
+        id
+        issue
+      }
+      fragment PublicationFragment on Publication {
+        ...BookFragment
+        ...MagazineFragment
+      }
+
+      query Library($includeFeatured: Boolean!) {
+        library(id: "x") {
+          id
+          featured {
+            ...PublicationFragment @include(if: $includeFeatured)
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      testSchema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toContain('LibraryQuery');
+    expect(content).toContain('featured');
+    expect(content).toMatchInlineSnapshot(`
+      "export type BookFragmentFragment = { id: string, title: string };
+
+      export type MagazineFragmentFragment = { id: string, issue: number };
+
+      type PublicationFragment_Book_Fragment = { id: string, title: string };
+
+      type PublicationFragment_Magazine_Fragment = { id: string, issue: number };
+
+      export type PublicationFragmentFragment =
+        | PublicationFragment_Book_Fragment
+        | PublicationFragment_Magazine_Fragment
+      ;
+
+      export type LibraryQueryVariables = Exact<{
+        includeFeatured: boolean;
+      }>;
+
+
+      export type LibraryQuery = { library: { id: string, featured:
+            | { id: string, title: string }
+            | { id: string, issue: number }
+            | Record<PropertyKey, never>
+           | null } | null };
+      "
+    `);
+  });
+
+  it('#10881 - nested @include fragments (inline and spread) must be added correctly to the operation Result', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        bio: String!
+        email: String!
+        emailLocalPart: String!
+        emailDomainPart: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      fragment EmailLocalPartFields on User {
+        emailLocalPart
+      }
+
+      fragment EmailFields on User {
+        email
+        ...EmailLocalPartFields @include(if: $withEmailParts)
+        ... on User @include(if: $withEmailParts) {
+          emailDomainPart
+        }
+      }
+
+      fragment UserFields on User {
+        id
+        bio @include(if: $withBio)
+        ...EmailFields @include(if: $withEmail)
+        ... on User @include(if: $withName) {
+          name
+        }
+      }
+
+      query GetUser(
+        $withBio: Boolean!
+        $withEmail: Boolean!
+        $withName: Boolean!
+        $withEmailParts: Boolean!
+      ) {
+        user {
+          ...UserFields
+        }
+      }
+    `);
+
+    const result = mergeOutputs([await plugin(schema, [{ document }], {}, { outputFile: '' })]);
+
+    expect(result).toMatchInlineSnapshot(`
+      "/** Internal type. DO NOT USE DIRECTLY. */
+      type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+      /** Internal type. DO NOT USE DIRECTLY. */
+      export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+      export type EmailLocalPartFieldsFragment = { emailLocalPart: string };
+
+      export type EmailFieldsFragment = { email: string } & { emailDomainPart?: string } & { emailLocalPart?: string };
+
+      export type UserFieldsFragment = { id: string, bio?: string } & { name?: string } & { email?: string };
+
+      export type GetUserQueryVariables = Exact<{
+        withBio: boolean;
+        withEmail: boolean;
+        withName: boolean;
+        withEmailParts: boolean;
+      }>;
+
+
+      export type GetUserQuery = { user: { id: string, bio?: string, name?: string, email?: string, emailDomainPart?: string, emailLocalPart?: string } | null };
+      "
+    `);
+    validateTs(result, undefined, undefined, undefined, undefined, true);
+  });
+});
+
+describe('TypeScript Operations Plugin - @skip directive', () => {
+  it('#8461 - conditional directives are ignored on fields with alias', async () => {
+    const testSchema = buildSchema(/* GraphQL */ `
+      type User {
+        firstName: String!
+        lastName: Int!
+        address: Address!
+      }
+
+      type Address {
+        postalCode: String!
+      }
+
+      type Query {
+        viewer: User!
+      }
+    `);
+
+    const query = parse(/* GraphQL */ `
+      query UserQuery($skipFirstName: Boolean!, $skipAddress: Boolean!) {
+        viewer {
+          givenName: firstName @skip(if: $skipFirstName)
+          lastName
+          mailingAddress: address @skip(if: $skipAddress) {
+            postalCode
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      testSchema,
+      [{ location: '', document: query }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+        "export type UserQueryQueryVariables = Exact<{
+          skipFirstName: boolean;
+          skipAddress: boolean;
+        }>;
+
+
+        export type UserQueryQuery = { viewer: { lastName: number, givenName?: string, mailingAddress?: { postalCode: string } } };
+        "
+      `);
+  });
+
+  /**
+   * `experimentalFragmentVariables` and `allowLegacyFragmentVariables` have been removed in graphql v17:
+   * This test is not a valid test in graphql v17 so we just skip it
+   *
+   * https://graphql.org/blog/2026-06-15-introducing-graphql-js-v17/#experimental-specification-work
+   *
+   */
+  if (versionInfo.major < 17) {
+    it('should include fragment variable definitions when experimentalFragmentVariables is set (graphql <v17)', async () => {
+      const ast = parse(
+        /* GraphQL */ `
+          fragment TextNotificationFragment($skip: Boolean!) on TextNotification {
+            text @skip(if: $skip)
+          }
+        `,
+        {
+          experimentalFragmentVariables: true, // < v15 compatibility
+          allowLegacyFragmentVariables: true, // v16 compatibility
+        } as any,
+      );
+      const config = { experimentalFragmentVariables: true };
+      const { content } = await plugin(
+        schema,
+        [{ location: 'test-file.ts', document: ast }],
+        config,
+        {
+          outputFile: '',
+        },
+      );
+      expect(content).toMatchInlineSnapshot(`
+      "export type TextNotificationFragmentFragment = { text?: string };
+
+
+      export type TextNotificationFragmentFragmentVariables = Exact<{
+        skip: boolean;
+      }>;
+      "
+    `);
+    });
+  }
+
+  it('generates optional field when @skip is used on an aliased field', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query GetUsers($skipName: Boolean!) {
+        users {
+          id
+          userName: name @skip(if: $skipName)
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type GetUsersQueryVariables = Exact<{
+        skipName: boolean;
+      }>;
+
+
+      export type GetUsersQuery = { users: Array<{ id: string, userName?: string }> };
+      "
+    `);
+  });
+
+  it('generates optional object when @skip is used on an inline fragment', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        nickName: String!
+        age: Int!
+        createdAt: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query User($skip: Boolean!) {
+        user {
+          id
+          ... @skip(if: $skip) {
+            name
+            niName: nickName
+          }
+          ... on User @skip(if: $included) {
+            age
+          }
+          ... {
+            createdAt
+          }
+        }
+      }
+      query GetUsers($skip: Boolean!) {
+        users {
+          id
+          ... @skip(if: $skip) {
+            name
+            niName: nickName
+          }
+          ... on User @skip(if: $skip) {
+            age
+          }
+        }
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserQueryVariables = Exact<{
+        skip: boolean;
+      }>;
+
+
+      export type UserQuery = { user: { createdAt: string, id: string } & { name?: string, niName?: string } & { age?: number } | null };
+
+      export type GetUsersQueryVariables = Exact<{
+        skip: boolean;
+      }>;
+
+
+      export type GetUsersQuery = { users: Array<{ id: string } & { name?: string, niName?: string } & { age?: number }> };
+      "
+    `);
+  });
+
+  it('generates optional object when @skip is used on a fragment spread', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        nickName: String!
+        age: Int!
+        createdAt: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query User($skip: Boolean!) {
+        user {
+          id
+          ...User_Name @skip(if: $skip)
+          ...User_Age @skip
+          ...User_CreatedAt # This is not conditional, so it should be merged with base selection set that includes the id field
+        }
+      }
+      query GetUsers($skip: Boolean!) {
+        users {
+          id
+          ...User_Name @skip(if: $skip)
+          ...User_Age @skip(if: $skip)
+          ...User_CreatedAt
+        }
+      }
+
+      fragment User_Name on User {
+        name
+        niName: nickName
+      }
+
+      fragment User_Age on User {
+        age
+      }
+
+      fragment User_CreatedAt on User {
+        createdAt
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserQueryVariables = Exact<{
+        skip: boolean;
+      }>;
+
+
+      export type UserQuery = { user: { id: string, createdAt: string } & { name?: string, niName?: string } & { age?: number } | null };
+
+      export type GetUsersQueryVariables = Exact<{
+        skip: boolean;
+      }>;
+
+
+      export type GetUsersQuery = { users: Array<{ id: string, createdAt: string } & { name?: string, niName?: string } & { age?: number }> };
+
+      export type User_NameFragment = { name: string, niName: string };
+
+      export type User_AgeFragment = { age: number };
+
+      export type User_CreatedAtFragment = { createdAt: string };
+      "
+    `);
+  });
+
+  it('#10881 - nested @skip fragments (inline and spread) must be added correctly to the operation Result', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        bio: String!
+        email: String!
+        emailLocalPart: String!
+        emailDomainPart: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      fragment EmailLocalPartFields on User {
+        emailLocalPart
+      }
+
+      fragment EmailFields on User {
+        email
+        ...EmailLocalPartFields @skip(if: $noEmailParts)
+        ... on User @skip(if: $noEmailParts) {
+          emailDomainPart
+        }
+      }
+
+      fragment UserFields on User {
+        id
+        bio @skip(if: $noBio)
+        ...EmailFields @skip(if: $noEmail)
+        ... on User @skip(if: $noName) {
+          name
+        }
+      }
+
+      query GetUser(
+        $noBio: Boolean!
+        $noEmail: Boolean!
+        $noName: Boolean!
+        $noEmailParts: Boolean!
+      ) {
+        user {
+          ...UserFields
+        }
+      }
+    `);
+
+    const result = mergeOutputs([await plugin(schema, [{ document }], {}, { outputFile: '' })]);
+
+    expect(result).toMatchInlineSnapshot(`
+      "/** Internal type. DO NOT USE DIRECTLY. */
+      type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+      /** Internal type. DO NOT USE DIRECTLY. */
+      export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+      export type EmailLocalPartFieldsFragment = { emailLocalPart: string };
+
+      export type EmailFieldsFragment = { email: string } & { emailDomainPart?: string } & { emailLocalPart?: string };
+
+      export type UserFieldsFragment = { id: string, bio?: string } & { name?: string } & { email?: string };
+
+      export type GetUserQueryVariables = Exact<{
+        noBio: boolean;
+        noEmail: boolean;
+        noName: boolean;
+        noEmailParts: boolean;
+      }>;
+
+
+      export type GetUserQuery = { user: { id: string, bio?: string, name?: string, email?: string, emailDomainPart?: string, emailLocalPart?: string } | null };
+      "
+    `);
+    validateTs(result, undefined, undefined, undefined, undefined, true);
+  });
+});
+
+describe('TypeScript Operations Plugin - @include and @skip with union', () => {
+  it('inline fragment in union with conditional directives must make inline fragment fields optional', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Mutation {
+        doSomething: Payload!
+      }
+
+      union Payload =
+        | SystemError
+        | SystemSuccess
+        | ClientError
+        | ClientMissingServiceError
+        | ClientMissingUrlError
+        | ClientRetry
+        | ClientSuccess
+
+      type SystemError {
+        message: String!
+      }
+
+      type SystemSuccess {
+        message: String!
+      }
+
+      type ClientError {
+        changes: [String!]!
+        errors: [String!]!
+        linkToWebsite: String
+        valid: Boolean!
+      }
+
+      type ClientMissingServiceError {
+        message: String!
+      }
+
+      type ClientMissingUrlError {
+        message: String!
+      }
+
+      type ClientRetry {
+        reason: String!
+      }
+
+      type ClientSuccess {
+        changes: [String!]!
+        initial: Boolean!
+        linkToWebsite: String
+        message: String
+        valid: Boolean!
+      }
+    `);
+    const document = parse(/* GraphQL */ `
+      mutation Test($skip: Boolean!) {
+        doSomething {
+          __typename
+          ... on ClientSuccess @skip(if: $skip) {
+            initial
+            valid
+            successMessage: message
+            linkToWebsite
+            changes
+          }
+          ... on ClientError @skip(if: $skip) {
+            valid
+            linkToWebsite
+            changes
+            errors
+          }
+          ... on ClientMissingServiceError @skip(if: $skip) {
+            missingServiceError: message
+          }
+          ... on ClientMissingUrlError @skip(if: $skip) {
+            missingUrlError: message
+          }
+          ... on SystemSuccess @include(if: $skip) {
+            message
+          }
+          ... on SystemError @include(if: $skip) {
+            message
+          }
+          ... on ClientRetry {
+            reason
+          }
+        }
+      }
+    `);
+    const result = mergeOutputs([await plugin(schema, [{ document }], {}, { outputFile: '' })]);
+
+    expect(result).toMatchInlineSnapshot(`
+      "/** Internal type. DO NOT USE DIRECTLY. */
+      type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+      /** Internal type. DO NOT USE DIRECTLY. */
+      export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+      export type TestMutationVariables = Exact<{
+        skip: boolean;
+      }>;
+
+
+      export type TestMutation = { doSomething:
+          | { __typename: 'SystemError' } & { message?: string }
+          | { __typename: 'SystemSuccess' } & { message?: string }
+          | { __typename: 'ClientError' } & { valid?: boolean, linkToWebsite?: string | null, changes?: Array<string>, errors?: Array<string> }
+          | { __typename: 'ClientMissingServiceError' } & { missingServiceError?: string }
+          | { __typename: 'ClientMissingUrlError' } & { missingUrlError?: string }
+          | { __typename: 'ClientRetry', reason: string }
+          | { __typename: 'ClientSuccess' } & { initial?: boolean, valid?: boolean, linkToWebsite?: string | null, changes?: Array<string>, successMessage?: string | null }
+         };
+      "
+    `);
+    validateTs(result, undefined, undefined, undefined, undefined, true);
+  });
+});
+
+describe('TypeScript Operations Plugin - @include and @skip with @defer', () => {
+  it('generates conditional object with defer fields when @skip and @include are used with @defer', async () => {
+    const schema = buildSchema(/* GraphQL */ `
+      type Query {
+        user: User
+        users: [User!]!
+      }
+
+      type User {
+        id: ID!
+        name: String!
+        nickName: String!
+        age: Int
+        createdAt: String!
+      }
+    `);
+
+    const document = parse(/* GraphQL */ `
+      query UserSkip {
+        user {
+          id
+          ...User_Name @skip
+          ...User_Age @skip @defer
+        }
+      }
+
+      query UserInclude {
+        user {
+          id
+          ...User_Name @include
+          ...User_Age @include @defer
+        }
+      }
+
+      fragment User_Name on User {
+        name
+        niName: nickName
+      }
+
+      fragment User_Age on User {
+        age
+        createdAt
+      }
+    `);
+
+    const { content } = await plugin(
+      schema,
+      [{ location: '', document }],
+      {},
+      { outputFile: 'graphql.ts' },
+    );
+
+    expect(content).toMatchInlineSnapshot(`
+      "export type UserSkipQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+      export type UserSkipQuery = { user: { id: string } & { name?: string, niName?: string } & { age?: number | null, createdAt?: string } & ({ age?: number | null, createdAt?: string } | { age?: never, createdAt?: never }) | null };
+
+      export type UserIncludeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+      export type UserIncludeQuery = { user: { id: string } & { name?: string, niName?: string } & { age?: number | null, createdAt?: string } & ({ age?: number | null, createdAt?: string } | { age?: never, createdAt?: never }) | null };
+
+      export type User_NameFragment = { name: string, niName: string };
+
+      export type User_AgeFragment = { age: number | null, createdAt: string };
+      "
+    `);
+  });
+});
